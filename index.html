@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arrow</title>
+  <link rel="icon" href="app-icon.png" type="image/png" />
+  <style>
+    /* Dark mode modern UI */
+    body, html {
+      margin: 0; padding: 0;
+      overflow-x: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0f1a;
+      color: #e0e6f1;
+      height: 200vh;
+      position: relative;
+    }
+    .container {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      z-index: 0;
+      background: linear-gradient(135deg, #0a0f1a 0%, #162a4f 100%);
+    }
+    #bgCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 10px #1f75feaa);
+    }
+    #firecrackerCanvas {
+      position: fixed; top: 0; left: 0;
+      pointer-events: none;
+      width: 100vw; height: 100vh;
+      z-index: 10;
+    }
+    .content {
+      position: relative; z-index: 20;
+      text-align: center;
+      margin-top: 60vh;
+      max-width: 400px;
+      margin-left: auto; margin-right: auto;
+      padding: 2rem;
+      background: rgba(10, 15, 26, 0.85);
+      border-radius: 16px;
+      backdrop-filter: saturate(180%) blur(12px);
+      box-shadow:
+        0 0 10px rgba(31, 117, 254, 0.8),
+        inset 0 0 40px rgba(31, 117, 254, 0.3);
+      user-select: none;
+      cursor: pointer;
+      color: #cde2ff;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+      font-size: 2.4rem;
+      color: #57a6ff;
+      text-shadow: 0 0 10px #57a6ffaa;
+    }
+    p {
+      margin-bottom: 1.5rem;
+      font-size: 1.2rem;
+      line-height: 1.4;
+      color: #a4bbffcc;
+      text-shadow: 0 0 5px #1f75fe88;
+    }
+    button {
+      padding: 14px 32px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      border: none;
+      background: #1f75fe;
+      color: #fff;
+      border-radius: 12px;
+      font-weight: 700;
+      box-shadow: 0 6px 15px #1f75fe99;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      user-select: none;
+    }
+    button:hover {
+      background: #58a3ff;
+      box-shadow: 0 8px 24px #58a3ffcc;
+    }
+    button:active {
+      background: #1a5fcc;
+      box-shadow: 0 4px 10px #1a5fccaa;
+      transform: translateY(1px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <canvas id="bgCanvas"></canvas>
+  </div>
+  <canvas id="firecrackerCanvas"></canvas>
+  <section class="content" id="content">
+    <h1>Welcome to Arrow</h1>
+    <p>Experience the adventure like never before with stunning 3D visuals.</p>
+    <button id="startBtn">Play Now</button>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.6.1/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+
+  <script>
+    // Scene setup
+    const scene = new THREE.Scene();
+
+    // Environment map
+    const path = 'https://threejs.org/examples/textures/cube/skybox/';
+    const format = '.png';
+    const urls = [
+      path + 'px' + format, path + 'nx' + format,
+      path + 'py' + format, path + 'ny' + format,
+      path + 'pz' + format, path + 'nz' + format
+    ];
+    const loader = new THREE.CubeTextureLoader();
+    const envMap = loader.load(urls);
+    scene.background = new THREE.Color(0x0a0f1a);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bgCanvas'), alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x0a0f1a, 1);
+
+    // Ball
+    const ballGeometry = new THREE.SphereGeometry(0.35, 64, 64);
+    const ballMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x1f75fe,
+      metalness: 0.7,
+      roughness: 0.1,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05,
+      envMap,
+      envMapIntensity: 1.2,
+      emissive: 0x1041b4,
+      emissiveIntensity: 0.5,
+      reflectivity: 0.7,
+    });
+    const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+    ball.position.set(-3, 0, 0);
+    scene.add(ball);
+
+    // Target
+    const targetGeometry = new THREE.TorusKnotGeometry(0.6, 0.18, 100, 16);
+    const targetMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x0fffcf,
+      metalness: 0.8,
+      roughness: 0.15,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      envMap,
+      envMapIntensity: 1.3,
+      emissive: 0x00ffc7,
+      emissiveIntensity: 0.8,
+      reflectivity: 0.85,
+    });
+    const target = new THREE.Mesh(targetGeometry, targetMaterial);
+    target.position.set(3, 0, 0);
+    scene.add(target);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const pointLight1 = new THREE.PointLight(0x1f75fe, 2, 15);
+    pointLight1.position.set(5, 5, 5);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0x00ffc7, 2, 15);
+    pointLight2.position.set(-5, -3, 5);
+    scene.add(pointLight2);
+
+    camera.position.z = 7;
+
+    // Animate scene
+    function animate() {
+      requestAnimationFrame(animate);
+
+      ball.rotation.y += 0.006;
+      ball.rotation.x += 0.003;
+
+      target.rotation.x += 0.005;
+      target.rotation.z += 0.008;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Vanilla Tilt on content overlay
+    VanillaTilt.init(document.querySelector("#content"), {
+      max: 25, speed: 400, glare: true, "max-glare": 0.4,
+      scale: 1.05,
+    });
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      firecrackerCanvas.width = window.innerWidth;
+      firecrackerCanvas.height = window.innerHeight;
+    });
+
+    // Firecracker effect canvas
+    const firecrackerCanvas = document.getElementById('firecrackerCanvas');
+    const ctx = firecrackerCanvas.getContext('2d');
+    firecrackerCanvas.width = window.innerWidth;
+    firecrackerCanvas.height = window.innerHeight;
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = Math.random() * 3 + 2;
+        this.color = color;
+        this.speedX = (Math.random() - 0.5) * 6;
+        this.speedY = (Math.random() - 0.5) * 6;
+        this.alpha = 1;
+        this.decay = 0.02 + Math.random() * 0.02;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= this.decay;
+        if (this.alpha < 0) this.alpha = 0;
+      }
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    let particles = [];
+
+    function createFullScreenFirecracker() {
+      const burstsCount = 30;
+      const colors = ['#1f75fe', '#00ffc7', '#58a3ff', '#00bfae', '#105c7d', '#80ffe1', '#00e3b3'];
+
+      for(let b=0; b<burstsCount; b++) {
+        const burstX = Math.random() * firecrackerCanvas.width;
+        const burstY = Math.random() * firecrackerCanvas.height;
+
+        for(let i=0; i<30; i++) {
+          const color = colors[Math.floor(Math.random()*colors.length)];
+          const p = new Particle(burstX, burstY, color);
+          p.speedX *= (Math.random() * 2 + 0.5);
+          p.speedY *= (Math.random() * 2 + 0.5);
+          particles.push(p);
+        }
+      }
+    }
+
+    function firecrackerAnimate() {
+      ctx.clearRect(0, 0, firecrackerCanvas.width, firecrackerCanvas.height);
+      particles.forEach((p, index) => {
+        p.update();
+        p.draw();
+        if(p.alpha <= 0) particles.splice(index, 1);
+      });
+      if(particles.length > 0) {
+        requestAnimationFrame(firecrackerAnimate);
+      }
+    }
+
+    let firecrackerTriggered = false;
+    function onScroll() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.body.scrollHeight - window.innerHeight;
+      const scrollPercent = Math.min(scrollTop / docHeight, 1);
+
+      ball.position.x = THREE.MathUtils.lerp(-3, 2.7, scrollPercent);
+
+      if(scrollPercent > 0.95 && !firecrackerTriggered) {
+        firecrackerTriggered = true;
+
+        gsap.to(target.scale, {
+          x: 1.3, y: 1.3, z: 1.3,
+          duration: 0.3,
+          yoyo: true,
+          repeat: 1,
+          ease: "power1.inOut"
+        });
+
+        createFullScreenFirecracker();
+        firecrackerAnimate();
+      }
+
+      if(scrollPercent < 0.95) {
+        firecrackerTriggered = false;
+      }
+    }
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+
+    // Download APK on Play Now click
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const apkUrl = 'gameapp.apk'; 
+      const a = document.createElement('a');
+      a.href = apkUrl;
+      a.download = 'gameapp.apk';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  </script>
+</body>
+</html>
